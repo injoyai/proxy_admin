@@ -196,6 +196,7 @@
         <div class="modal-content">
             <span id="addTunnelClose" class="close">&times;</span>
             <h2>添加隧道</h2>
+            <input type="text" hidden="hidden" id="addID">
             <input type="text" id="addName" placeholder="名称">
             <input type="text" id="addMemo" placeholder="备注">
             <input type="text" id="addSN" placeholder="SN">
@@ -219,16 +220,18 @@
 
     //点击事件
     addTunnel.onclick = () => {
+        document.getElementById('addTunnelClick').innerHTML = "添加";
         addTunnelInput.style.display = "block";
     }
     addTunnelClose.onclick = () => {
         addTunnelInput.style.display = "none";
     }
     addTunnelClick.onclick = () => {
+        const id = document.getElementById('addID').value;
         const name = document.getElementById('addName').value;
         const memo = document.getElementById('addMemo').value;
         const sn = document.getElementById('addSN').value;
-        fnAddTunnelClick("",name, memo, sn)
+        fnAddTunnelClick(id,name, memo, sn)
     }
 
 
@@ -257,9 +260,11 @@
             const editButton = document.createElement('button');
             editButton.textContent = '修改';
             editButton.onclick = () => {
+                document.getElementById('addID').value = device.id;
                 document.getElementById('addName').value = device.name;
                 document.getElementById('addMemo').value =device.memo;
                 document.getElementById('addSN').value = device.sn;
+                document.getElementById('addTunnelClick').innerHTML = "修改";
                 addTunnelInput.style.display = "block";
             };
 
@@ -298,6 +303,7 @@
         },function (data){
             if (data !== undefined){
                 //清空数据并关闭
+                document.getElementById('addID').value = '';
                 document.getElementById('addName').value = '';
                 document.getElementById('addMemo').value = '';
                 document.getElementById('addSN').value = '';
