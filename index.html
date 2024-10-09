@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>隧道管理</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            display: flex;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            height: 100vh;
+        }
+
+        #sidebar {
+            width: 200px; /* 调整宽度 */
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+            overflow-y: auto;
+        }
+
+        #sidebar h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        #sidebar ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        #sidebar ul li {
+            margin: 10px 0;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #sidebar ul li:hover {
+            background-color: #34495e;
+        }
+
+        #content {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #ecf0f1;
+        }
+
+        #content iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .device-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .device-info input {
+            margin-bottom: 5px;
+            padding: 5px;
+        }
+
+        #addDeviceBtn {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #addDeviceBtn:hover {
+            background-color: #219653;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0, 0, 0);
+            background-color: rgba(0, 0, 0, 0.4);
+            padding-top: 60px;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+        }
+
+        .modal-content h2 {
+            margin-top: 0;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .modal-content input {
+            width: 95%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .modal-content button {
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .modal-content button:hover {
+            background-color: #218838;
+        }
+
+
+
+        .notification {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 10px;
+            background-color: #4caf50;
+            color: #fff;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            animation: slideIn 0.5s forwards, fadeOut 0.5s 1.5s forwards;
+            opacity: 0;
+            transform: translateY(-100%);
+            z-index: 999;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-100%);
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div id="sidebar">
+    <h2>隧道列表</h2>
+    <ul id="tunnelList"></ul>
+    <button id="addTunnel">添加</button>
+    <div id="addTunnelInput" class="modal">
+        <div class="modal-content">
+            <span id="addTunnelClose" class="close">&times;</span>
+            <h2>添加隧道</h2>
+            <input type="text" id="addName" placeholder="名称">
+            <input type="text" id="addMemo" placeholder="备注">
+            <input type="text" id="addSN" placeholder="SN">
+            <button id="addTunnelClick">添加</button>
+        </div>
+    </div>
+</div>
+
+<div id="content">
+    <iframe id="deviceFrame" src="" frameborder="0"></iframe>
+</div>
+
+<script>
+    const deviceList = document.getElementById('tunnelList');
+    const addTunnel = document.getElementById('addTunnel');
+    const addTunnelInput = document.getElementById('addTunnelInput');
+    const addTunnelClick = document.getElementById('addTunnelClick');
+    const addTunnelClose = document.getElementById('addTunnelClose');
+
+
+
+    //点击事件
+    addTunnel.onclick = () => {
+        addTunnelInput.style.display = "block";
+    }
+    addTunnelClose.onclick = () => {
+        addTunnelInput.style.display = "none";
+    }
+    addTunnelClick.onclick = () => {
+        const name = document.getElementById('addName').value;
+        const memo = document.getElementById('addMemo').value;
+        const sn = document.getElementById('addSN').value;
+        fnAddTunnelClick("",name, memo, sn)
+    }
+
+
+    async function loadDevices() {
+        const response = await fetch('http://localhost:8080/api/tunnel/list?pageNum=1&pageSize=10');
+        const data = await response.json();
+
+        deviceList.innerHTML = ''; // 清空设备列表
+
+        data.data.forEach(device => {
+            const li = document.createElement('li');
+
+
+            // 设备名称
+            const deviceName = document.createElement('span');
+            deviceName.textContent = device.name; // 假设设备对象有一个name属性
+            deviceName.onclick = () => fnBridge(device.sn);
+
+            //在线状态
+            const online = document.createElement('span');
+            online.textContent = device.online ? '在线' : '离线';
+            online.style.color = device.online ? 'green' : 'red';
+
+
+            // 修改按钮
+            const editButton = document.createElement('button');
+            editButton.textContent = '修改';
+            editButton.onclick = () => {
+                document.getElementById('addName').value = device.name;
+                document.getElementById('addMemo').value =device.memo;
+                document.getElementById('addSN').value = device.sn;
+                addTunnelInput.style.display = "block";
+            };
+
+            // 删除按钮
+            const delButton = document.createElement('button');
+            delButton.textContent = '删除';
+            delButton.onclick =()=> fnDelTunnelClick(device.id);
+
+            li.appendChild(deviceName);
+            li.appendChild(online);
+            li.appendChild(editButton);
+            li.appendChild(delButton);
+            deviceList.appendChild(li);
+        });
+    }
+
+
+
+
+    // 隧道桥接
+    function fnBridge(sn) {
+        const uid = Math.random().toString(36).substring(2, 2 + length);
+        document.cookie = `sn=${sn}; path=/, uid=${uid}; path=/`; // 设置 Cookie
+        const frameUrl = `http://localhost:8090/api/bridge?sn=${sn}`;
+        document.getElementById('deviceFrame').src = frameUrl;
+    }
+
+
+    // 添加隧道
+    function fnAddTunnelClick(id,name, memo, sn) {
+        doHTTP("POST",'http://localhost:8080/api/tunnel',{
+            id:id,
+            name: name,
+            memo: memo,
+            sn: sn
+        },function (data){
+            if (data !== undefined){
+                //清空数据并关闭
+                document.getElementById('addName').value = '';
+                document.getElementById('addMemo').value = '';
+                document.getElementById('addSN').value = '';
+                addTunnelInput.style.display = "none";
+                //刷新列表
+                loadDevices()
+            }
+        })
+    }
+
+    // 删除隧道
+    function fnDelTunnelClick(id){
+        doHTTP("delete",`http://localhost:8080/api/tunnel?id=${id}`,"", function (data){
+            loadDevices()
+        })
+    }
+
+    // 弹出通知
+    function notice(msg,color){
+        // 假设发送成功后显示一个小窗口提醒
+        var notification = document.createElement('div');
+        notification.className = 'notification';
+        notification.innerText = msg;
+        if (color!==""){
+            notification.style.backgroundColor=color;
+        }
+        document.body.appendChild(notification);
+
+        // 2秒后自动消失
+        setTimeout(function() {
+            document.body.removeChild(notification);
+        }, 2000);
+    }
+
+    // 弹出错误通知
+    function noticeErr(msg){
+        notice(msg,'#ff0029')
+    }
+
+    function doHTTP(method,url,body,then){
+        if (method===""){
+            method="GET"
+        }
+       return fetch(url, {
+            method:method,
+            body: JSON.stringify(body)
+        })
+            .then(response =>response.json())
+            .then(data => {
+                if (data.code === 200) {
+                    //添加成功
+                    notice("成功")
+                    then(data.data)
+                }else{
+                    noticeErr(data.data)
+                }
+            });
+    }
+
+
+    // 初始化操作
+    function init() {
+
+
+        loadDevices()
+
+    }
+
+    init();
+
+</script>
+
+</body>
+</html>
