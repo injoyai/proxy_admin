@@ -14,11 +14,12 @@ import (
 var (
 	DB     = minidb.New("./database", "default", minidb.WithID("ID"))
 	Server = tunnel.Server{
-		Listen:      core.NewListenTCP(7000), //给隧道客户端的端口
-		OnRegister:  nil,
-		OnProxy:     nil,
-		OnConnected: nil,
-		OnClosed:    nil,
+		Listen: core.NewListenTCP(7000), //给隧道客户端的端口
+		OnRegister: func(tun *core.Tunnel, reg *core.RegisterReqExtend) error {
+			tun.SetKey(reg.Key)
+			reg.Listen = &core.Listen{}
+			return nil
+		},
 	}
 	Bridge net.Listener
 )

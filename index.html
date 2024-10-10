@@ -316,7 +316,7 @@
 
     // 删除隧道
     function fnDelTunnelClick(id){
-        doHTTP("delete",`http://localhost:8080/api/tunnel?id=${id}`,"", function (data){
+        doHTTP("DELETE",`http://localhost:8080/api/tunnel?id=${id}`,"", function (data){
             loadDevices()
         })
     }
@@ -360,7 +360,10 @@
                 }else{
                     noticeErr(data.data)
                 }
-            });
+            })
+           .catch(reason => {
+               noticeErr(reason)
+           });
     }
 
 

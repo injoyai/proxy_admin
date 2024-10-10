@@ -2,10 +2,13 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"github.com/injoyai/logs"
 	"github.com/injoyai/proxy/core"
+	"io"
 	"net"
 	"net/http"
+	"net/http/httputil"
 )
 
 func init() {
@@ -42,6 +45,10 @@ func handlerEasy(conn net.Conn) error {
 	}
 
 	sn := co.Value
+	if sn == "" {
+		sn = r.URL.Query().Get("sn")
+	}
+	logs.Debug("sn:", sn)
 
 	c, ok := Server.Clients.Get(sn)
 	if !ok {
@@ -49,12 +56,22 @@ func handlerEasy(conn net.Conn) error {
 		return nil
 	}
 
-	t := c.(*core.Tunnel)
+	bs, err := httputil.DumpRequest(r, true)
+	if err != nil {
+		return err
+	}
 
+	t := c.(*core.Tunnel)
 	return t.DialAndSwap(
 		conn.RemoteAddr().String(),
 		core.NewDialTCP(":80"),
-		conn,
+		struct {
+			io.Reader
+			io.WriteCloser
+		}{
+			io.MultiReader(bytes.NewReader(bs), conn),
+			conn,
+		},
 	)
 
 }

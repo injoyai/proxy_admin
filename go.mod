@@ -5,8 +5,9 @@ go 1.21.0
 require (
 	github.com/gogf/gf v1.16.9
 	github.com/injoyai/goutil v0.0.0-20241008060936-8e8977a56b25
+	github.com/injoyai/logs v1.0.9
 	github.com/injoyai/minidb v0.0.15
-	github.com/injoyai/proxy v1.0.13
+	github.com/injoyai/proxy v1.0.14
 )
 
 require (
@@ -36,7 +37,6 @@ require (
 	github.com/injoyai/base v1.0.18 // indirect
 	github.com/injoyai/conv v1.1.10 // indirect
 	github.com/injoyai/io v0.1.8 // indirect
-	github.com/injoyai/logs v1.0.9 // indirect
 	github.com/jmespath/go-jmespath v0.3.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/leodido/go-urn v1.2.0 // indirect
