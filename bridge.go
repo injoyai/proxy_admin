@@ -3,6 +3,8 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"errors"
+	"fmt"
 	"github.com/injoyai/logs"
 	"github.com/injoyai/proxy/core"
 	"io"
@@ -32,6 +34,31 @@ func init() {
 }
 
 func handlerEasy(conn net.Conn) error {
+	//判断是否在线
+	sn := BridgeTarget.GetString(DefaultUID)
+	c, ok := Server.Clients.Get(sn)
+	if !ok {
+		conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\n\r\n")))
+		return errors.New("隧道不在线")
+	}
+
+	//获取桥接目标
+	info, ok := TunnelCache.Get(sn)
+	if !ok {
+		conn.Write([]byte(fmt.Sprintf("HTTP/1.1 404 Not Found\r\n\r\n缓存信息不存在")))
+		return errors.New("缓存信息不存在")
+	}
+
+	//进行桥接
+	t := c.(*core.Tunnel)
+	return t.DialAndSwap(
+		conn.RemoteAddr().String(),
+		info.(*Tunnel).Dialer(),
+		conn,
+	)
+}
+
+func handler(conn net.Conn) error {
 	buf := bufio.NewReader(conn)
 
 	r, err := http.ReadRequest(buf)
@@ -64,7 +91,7 @@ func handlerEasy(conn net.Conn) error {
 	t := c.(*core.Tunnel)
 	return t.DialAndSwap(
 		conn.RemoteAddr().String(),
-		core.NewDialTCP(":80"),
+		core.NewDialTCP("www.baidu.com:80"),
 		struct {
 			io.Reader
 			io.WriteCloser

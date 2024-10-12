@@ -1,7 +1,9 @@
 package main
 
 import (
+	_ "embed"
 	"github.com/gogf/gf/net/ghttp"
+	"github.com/injoyai/base/maps"
 	"github.com/injoyai/goutil/frame/gf"
 	"github.com/injoyai/goutil/frame/in"
 	"github.com/injoyai/logs"
@@ -10,6 +12,12 @@ import (
 	"github.com/injoyai/proxy/tunnel"
 	"net"
 )
+
+//go:embed index.html
+var Index []byte
+
+//go:embed offline.html
+var Offline []byte
 
 var (
 	DB     = minidb.New("./database", "default", minidb.WithID("ID"))
@@ -21,17 +29,31 @@ var (
 			return nil
 		},
 	}
-	Bridge net.Listener
+	Bridge       net.Listener
+	BridgeTarget = maps.NewSafe()
+	DefaultUID   = "default"
+	TunnelCache  = maps.NewSafe()
 )
 
 func init() {
+	core.DefaultLog.SetLevel(core.LevelInfo)
 	logs.PrintErr(DB.Sync(new(Tunnel)))
 	go Server.Run()
+	data := []*Tunnel(nil)
+	err := DB.Find(&data)
+	logs.PanicErr(err)
+	for _, v := range data {
+		TunnelCache.Set(v.SN, v)
+	}
 }
 
 func main() {
 
 	s := gf.New().SetPort(8080)
+
+	s.GET("/", func(r *ghttp.Request) {
+		in.Html(200, Index)
+	})
 
 	s.Group("/api", func(g *ghttp.RouterGroup) {
 
@@ -60,13 +82,35 @@ func main() {
 				in.Err(err)
 			}
 			err = DB.Where("ID=?", req.ID).Update(req)
+			if err == nil {
+				TunnelCache.Set(req.SN, req)
+			}
 			in.Err(err)
 		})
 
 		g.DELETE("/tunnel", func(r *ghttp.Request) {
 			id := r.GetString("id")
 			err := DB.Where("ID=?", id).Delete(new(Tunnel))
+			if err == nil {
+				TunnelCache.Range(func(key, value interface{}) bool {
+					if value.(*Tunnel).ID == id {
+						TunnelCache.Del(key)
+						return false
+					}
+					return true
+				})
+			}
 			in.Err(err)
+		})
+
+		g.POST("/bridge", func(r *ghttp.Request) {
+			sn := r.GetString("sn")
+			BridgeTarget.Set(DefaultUID, sn)
+			t := Server.GetTunnel(sn)
+			if t == nil {
+				in.Err("隧道不在线")
+			}
+			in.Succ(nil)
 		})
 
 	})

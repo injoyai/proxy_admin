@@ -8,6 +8,7 @@ import (
 )
 
 func main() {
+	core.DefaultLog.SetLevel(core.LevelInfo)
 	sn := "001"
 	t := tunnel.Client{
 		Dialer: core.NewDialTCP(":7000"),

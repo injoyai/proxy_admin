@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh" xmlns="http://www.w3.org/1999/html">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -25,6 +25,7 @@
         #sidebar h2 {
             font-size: 18px;
             margin-bottom: 20px;
+            #color: #000000;
         }
 
         #sidebar ul {
@@ -112,6 +113,12 @@
 
         .modal-content h2 {
             margin-top: 0;
+            color: #000000;
+        }
+
+        .modal-content h3 {
+            margin-top: 0;
+            color: #000000;
         }
 
         .close {
@@ -121,7 +128,10 @@
             font-weight: bold;
         }
 
-        .close:hover,
+        .close:hover {
+            color: #218838;
+        }
+
         .close:focus {
             color: black;
             text-decoration: none;
@@ -129,7 +139,7 @@
         }
 
         .modal-content input {
-            width: 95%;
+            width: 85%;
             padding: 10px;
             margin: 10px 0;
             border: 1px solid #ccc;
@@ -149,6 +159,9 @@
             background-color: #218838;
         }
 
+        .modal-content h2 {
+
+        }
 
 
         .notification {
@@ -184,14 +197,66 @@
                 opacity: 0;
             }
         }
+
+        .tunnelList {
+            position: relative;
+        }
+
+        .buttonBox {
+            position: absolute;
+            bottom: 10px;
+        }
+
+        .button {
+            bottom: 10px;
+            left: 22px;
+            text-align: center;
+            display: inline-block;
+            margin: 10px;
+            padding: 2px 15px;
+            text-decoration: none;
+            font: bold 12px/25px Arial, sans-serif;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .button:hover {
+            background-color: #218838;
+        }
+
+        .mini-button {
+            text-align: center;
+            display: inline-block;
+            padding: 1px 4px;
+            text-decoration: none;
+            font: bold 12px/25px Arial, sans-serif;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        .mini-button:hover {
+            background-color: #218838;
+        }
+
+
     </style>
 </head>
 <body>
 
-<div id="sidebar">
+<div id="sidebar" class="tunnelList">
     <h2>隧道列表</h2>
     <ul id="tunnelList"></ul>
-    <button id="addTunnel">添加</button>
+    <div class="buttonBox">
+        <button id="addTunnel" class="button">添加</button>
+        <button id="setting" class="button">设置</button>
+    </div>
+
     <div id="addTunnelInput" class="modal">
         <div class="modal-content">
             <span id="addTunnelClose" class="close">&times;</span>
@@ -200,26 +265,35 @@
             <input type="text" id="addName" placeholder="名称">
             <input type="text" id="addMemo" placeholder="备注">
             <input type="text" id="addSN" placeholder="SN">
+            <input type="text" id="addTarget" placeholder="代理地址" value=":80">
             <button id="addTunnelClick">添加</button>
         </div>
     </div>
 </div>
 
 <div id="content">
-    <iframe id="deviceFrame" src="" frameborder="0"></iframe>
+    <iframe id="tunnelFrame" src="" frameborder="0"></iframe>
 </div>
 
 <script>
     const deviceList = document.getElementById('tunnelList');
     const addTunnel = document.getElementById('addTunnel');
+    const setting = document.getElementById('setting');
     const addTunnelInput = document.getElementById('addTunnelInput');
     const addTunnelClick = document.getElementById('addTunnelClick');
     const addTunnelClose = document.getElementById('addTunnelClose');
-
+    const apiHost = window.location.host//"http://localhost:8080"
+    const bridgeHost = "http://localhost:8090"
+    let token ="";
 
 
     //点击事件
     addTunnel.onclick = () => {
+        document.getElementById('addID').value = '';
+        document.getElementById('addName').value = '';
+        document.getElementById('addMemo').value = '';
+        document.getElementById('addSN').value = '';
+        document.getElementById('addTarget').value = '';
         document.getElementById('addTunnelClick').innerHTML = "添加";
         addTunnelInput.style.display = "block";
     }
@@ -231,12 +305,17 @@
         const name = document.getElementById('addName').value;
         const memo = document.getElementById('addMemo').value;
         const sn = document.getElementById('addSN').value;
-        fnAddTunnelClick(id,name, memo, sn)
+        const target = document.getElementById('addTarget').value;
+        fnAddTunnelClick(id, name, memo, sn,target)
+    }
+    setting.onclick = () => {
+        noticeErr("该功能暂未实现")
     }
 
 
+
     async function loadDevices() {
-        const response = await fetch('http://localhost:8080/api/tunnel/list?pageNum=1&pageSize=10');
+        const response = await fetch('/api/tunnel/list?pageNum=1&pageSize=10');
         const data = await response.json();
 
         deviceList.innerHTML = ''; // 清空设备列表
@@ -248,7 +327,7 @@
             // 设备名称
             const deviceName = document.createElement('span');
             deviceName.textContent = device.name; // 假设设备对象有一个name属性
-            deviceName.onclick = () => fnBridge(device.sn);
+            deviceName.onclick = () => fnBridge(device.sn, device.target);
 
             //在线状态
             const online = document.createElement('span');
@@ -259,11 +338,13 @@
             // 修改按钮
             const editButton = document.createElement('button');
             editButton.textContent = '修改';
+            editButton.className = 'mini-button'
             editButton.onclick = () => {
                 document.getElementById('addID').value = device.id;
                 document.getElementById('addName').value = device.name;
-                document.getElementById('addMemo').value =device.memo;
+                document.getElementById('addMemo').value = device.memo;
                 document.getElementById('addSN').value = device.sn;
+                document.getElementById('addTarget').value = device.target;
                 document.getElementById('addTunnelClick').innerHTML = "修改";
                 addTunnelInput.style.display = "block";
             };
@@ -271,7 +352,8 @@
             // 删除按钮
             const delButton = document.createElement('button');
             delButton.textContent = '删除';
-            delButton.onclick =()=> fnDelTunnelClick(device.id);
+            delButton.className = 'mini-button'
+            delButton.onclick = () => fnDelTunnelClick(device.id);
 
             li.appendChild(deviceName);
             li.appendChild(online);
@@ -282,31 +364,31 @@
     }
 
 
-
-
     // 隧道桥接
     function fnBridge(sn) {
-        const uid = Math.random().toString(36).substring(2, 2 + length);
-        document.cookie = `sn=${sn}; path=/, uid=${uid}; path=/`; // 设置 Cookie
-        const frameUrl = `http://localhost:8090/api/bridge?sn=${sn}`;
-        document.getElementById('deviceFrame').src = frameUrl;
+        //先告诉服务端要桥接哪个隧道,后续加上唯一标识,否则其他地方操作会覆盖当前桥接
+        doHTTP("POST",`/api/bridge?sn=${sn}`,"",()=>{
+            document.getElementById('tunnelFrame').src = bridgeHost;
+        })
     }
 
 
     // 添加隧道
-    function fnAddTunnelClick(id,name, memo, sn) {
-        doHTTP("POST",'http://localhost:8080/api/tunnel',{
-            id:id,
+    function fnAddTunnelClick(id, name, memo, sn,target) {
+        doHTTP("POST", '/api/tunnel', {
+            id: id,
             name: name,
             memo: memo,
-            sn: sn
-        },function (data){
-            if (data !== undefined){
+            sn: sn,
+            target:target,
+        }, function (data) {
+            if (data !== undefined) {
                 //清空数据并关闭
                 document.getElementById('addID').value = '';
                 document.getElementById('addName').value = '';
                 document.getElementById('addMemo').value = '';
                 document.getElementById('addSN').value = '';
+                document.getElementById('addTarget').value = '';
                 addTunnelInput.style.display = "none";
                 //刷新列表
                 loadDevices()
@@ -315,60 +397,78 @@
     }
 
     // 删除隧道
-    function fnDelTunnelClick(id){
-        doHTTP("DELETE",`http://localhost:8080/api/tunnel?id=${id}`,"", function (data){
+    function fnDelTunnelClick(id) {
+        doHTTP("DELETE", `/api/tunnel?id=${id}`, "", function (data) {
             loadDevices()
         })
     }
 
     // 弹出通知
-    function notice(msg,color){
+    function notice(msg, color) {
         // 假设发送成功后显示一个小窗口提醒
         var notification = document.createElement('div');
         notification.className = 'notification';
         notification.innerText = msg;
-        if (color!==""){
-            notification.style.backgroundColor=color;
+        if (color !== "") {
+            notification.style.backgroundColor = color;
         }
         document.body.appendChild(notification);
 
         // 2秒后自动消失
-        setTimeout(function() {
+        setTimeout(function () {
             document.body.removeChild(notification);
-        }, 2000);
+        }, 3000);
     }
 
     // 弹出错误通知
-    function noticeErr(msg){
-        notice(msg,'#ff0029')
+    function noticeErr(msg) {
+        notice(msg, '#ff0029')
     }
 
-    function doHTTP(method,url,body,then){
-        if (method===""){
-            method="GET"
+    function doHTTP(method, api, body, then) {
+        if (method === "") {
+            method = "GET"
         }
-       return fetch(url, {
-            method:method,
-            body: JSON.stringify(body)
+        console.log(apiHost)
+        console.log(api)
+        console.log(apiHost+api)
+        return fetch(api, {
+            method: method,
+            body: JSON.stringify(body),
+            headers: {
+                "Authorization":token
+            }
         })
-            .then(response =>response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(response.statusText);
+                }
+                return response.json()
+            })
             .then(data => {
                 if (data.code === 200) {
-                    //添加成功
+                    //请求成功
                     notice("成功")
-                    then(data.data)
-                }else{
+                    if (then !== undefined) {
+                        then(data.data)
+                    }
+                }else if (data.code === 401){
+                    //登录过期,跳转至登录界面
+
+
+                } else {
                     noticeErr(data.data)
                 }
             })
-           .catch(reason => {
-               noticeErr(reason)
-           });
+            .catch(reason => {
+                noticeErr(reason)
+            });
     }
 
 
     // 初始化操作
     function init() {
+        //校验是否登录
 
 
         loadDevices()
