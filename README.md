@@ -9,4 +9,4 @@
 ![](docs/add.png)
 
 #### 3. 数据桥接
-![](docs/tunnel.png)
+![](docs/bridge.png)
