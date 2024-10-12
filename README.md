@@ -1,4 +1,4 @@
-### 基于仓库`github.com/injoyai/proxy`的简单示例
+### 基于仓库`https://github.com/injoyai/proxy`的简单示例
 
 ### 效果如下
 
